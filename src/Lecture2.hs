@@ -41,6 +41,7 @@ module Lecture2
     ) where
 
 -- VVV If you need to import libraries, do it after this line ... VVV
+import Data.Char
 
 -- ^^^ and before this line. Otherwise the test suite might fail  ^^^
 
@@ -52,7 +53,9 @@ zero, you can stop calculating product and return 0 immediately.
 84
 -}
 lazyProduct :: [Int] -> Int
-lazyProduct = error "TODO"
+lazyProduct [] = 1
+lazyProduct (0:_) = 0
+lazyProduct (x:xs) = x * lazyProduct xs
 
 {- | Implement a function that duplicates every element in the list.
 
@@ -62,7 +65,8 @@ lazyProduct = error "TODO"
 "ccaabb"
 -}
 duplicate :: [a] -> [a]
-duplicate = error "TODO"
+duplicate [] = []
+duplicate (x:xs) = x:x:duplicate xs
 
 {- | Implement function that takes index and a list and removes the
 element at the given position. Additionally, this function should also
@@ -74,7 +78,15 @@ return the removed element.
 >>> removeAt 10 [1 .. 5]
 (Nothing,[1,2,3,4,5])
 -}
-removeAt = error "TODO"
+removeAt :: Int -> [a] -> (Maybe a, [a])
+removeAt i xs = removeAt' i xs []
+
+removeAt' :: Int -> [a] -> [a] -> (Maybe a, [a])
+removeAt' _ [] ys = (Nothing, reverse ys)
+removeAt' 0 (x:xs) ys = (Just x, reverse ys ++ xs)
+removeAt' i (x:xs) ys
+          | i > 0 = removeAt' (i-1) xs (x:ys)
+          | otherwise = (Nothing, (x:xs)) 
 
 {- | Write a function that takes a list of lists and returns only
 lists of even lengths.
@@ -85,7 +97,8 @@ lists of even lengths.
 ♫ NOTE: Use eta-reduction and function composition (the dot (.) operator)
   in this function.
 -}
-evenLists = error "TODO"
+evenLists :: [[a]] -> [[a]]
+evenLists = filter (even . length)
 
 {- | The @dropSpaces@ function takes a string containing a single word
 or number surrounded by spaces and removes all leading and trailing
@@ -101,7 +114,8 @@ spaces.
 
 🕯 HINT: look into Data.Char and Prelude modules for functions you may use.
 -}
-dropSpaces = error "TODO"
+dropSpaces :: String -> String
+dropSpaces = takeWhile (not . isSpace) . dropWhile isSpace
 
 {- |
 
@@ -164,8 +178,61 @@ data Knight = Knight
     , knightEndurance :: Int
     }
 
-dragonFight = error "TODO"
+data Chest a = MkChest
+    { chestGold     :: Int
+    , chestTreasure :: a
+    }
 
+data DragonColor = Red | Black | Green deriving(Eq) 
+
+data Dragon = Dragon
+    { dragonColor     :: DragonColor
+    , dragonHealth    :: Int
+    , dragonFirePower :: Int
+    } 
+
+data FightOutcome a = KnightWins (Maybe a, Int) | KnightDies | KnightRunsAway
+
+experience :: Dragon -> Int
+experience dragon 
+           | dragonColor dragon == Red   = 100
+           | dragonColor dragon == Black = 150
+           | dragonColor dragon == Green = 250
+
+dragonFight :: Dragon -> Knight -> Chest a -> FightOutcome a
+dragonFight dragon knight chest = dragonFight' dragon knight chest 0
+
+dragonFight' :: Dragon -> Knight -> Chest a -> Int -> FightOutcome a
+dragonFight' dragon knight chest strikes
+              | dragonHealth dragon <= 0    = KnightWins (reward dragon chest)
+              | knightHealth knight <= 0    = KnightDies
+              | knightEndurance knight == 0 = KnightRunsAway
+              | otherwise = if strikes >= 10 && 0 == (mod) strikes 10
+                               then
+                                  let
+                                     dragonHealth' = dragonHealth dragon - knightAttack knight
+                                     dragon' = dragon {dragonHealth = dragonHealth'}
+                                     endurance' = knightEndurance knight - 1
+                                     health' = knightHealth knight - dragonFirePower dragon
+                                     knight' = knight { knightHealth = health', knightEndurance = endurance'}
+                                   in
+                                     dragonFight' dragon' knight' chest (1 + strikes)
+                                else 
+                                  let
+                                     dragonHealth' = dragonHealth dragon - knightAttack knight
+                                     dragon' = dragon {dragonHealth = dragonHealth'}
+                                     endurance' = knightEndurance knight - 1
+                                     knight' = knight { knightEndurance = endurance'}
+                                   in
+                                     dragonFight' dragon' knight' chest (1 + strikes)
+
+reward :: Dragon -> Chest a -> (Maybe a, Int)
+reward dragon chest = if dragonColor dragon == Green
+                        then
+                            (Nothing, chestGold chest + experience dragon)
+                        else
+                            (Just (chestTreasure chest), chestGold chest + experience dragon)
+                            
 ----------------------------------------------------------------------------
 -- Extra Challenges
 ----------------------------------------------------------------------------
@@ -185,7 +252,8 @@ False
 True
 -}
 isIncreasing :: [Int] -> Bool
-isIncreasing = error "TODO"
+isIncreasing (x1:x2:xs) = (x2>=x1) && isIncreasing (x2:xs)
+isIncreasing _ = True 
 
 {- | Implement a function that takes two lists, sorted in the
 increasing order, and merges them into new list, also sorted in the
@@ -198,7 +266,11 @@ verify that.
 [1,2,3,4,7]
 -}
 merge :: [Int] -> [Int] -> [Int]
-merge = error "TODO"
+merge [] ys = ys
+merge xs [] = xs
+merge (x:xs) (y:ys)
+    | x <= y    = x:merge xs (y:ys)
+    | otherwise = y:merge (x:xs) ys
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
@@ -215,7 +287,14 @@ The algorithm of merge sort is the following:
 [1,2,3]
 -}
 mergeSort :: [Int] -> [Int]
-mergeSort = error "TODO"
+mergeSort []  = []
+mergeSort [x] = [x]
+mergeSort xs  = let
+                  l1 = ((`take` xs) . (`div` 2) . length) xs
+                  l2 = ((`drop` xs) . (`div` 2) . length) xs
+                in
+                  merge (mergeSort l1) (mergeSort l2)
+
 
 
 {- | Haskell is famous for being a superb language for implementing
@@ -268,7 +347,19 @@ data EvalError
 It returns either a successful evaluation result or an error.
 -}
 eval :: Variables -> Expr -> Either EvalError Int
-eval = error "TODO"
+eval _ (Lit a) = Right a
+eval vars (Var v) = case lookup v vars of
+                         Nothing -> Left (VariableNotFound v)
+                         Just x  -> Right x
+eval vars (Add exp1 exp2) = let
+                              f    = eval vars
+                              val1 = f exp1
+                              val2 = f exp2
+                             in
+                               case (val1, val2) of
+                                    (Left e, _) -> Left e
+                                    (_, Left e) -> Left e
+                                    (Right x, Right y) -> Right (x+y)
 
 {- | Compilers also perform optimizations! One of the most common
 optimizations is "Constant Folding". It performs arithmetic operations
@@ -292,4 +383,23 @@ Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
 constantFolding :: Expr -> Expr
-constantFolding = error "TODO"
+constantFolding e = mkExpr (getLitsAndVars e [] [])
+
+
+getLitsAndVars :: Expr -> [String] -> [Int] -> ([String], [Int])
+getLitsAndVars (Lit l)     vs ls  = (vs, l:ls)
+getLitsAndVars (Var v)     vs ls  = (v:vs, ls)
+getLitsAndVars (Add e1 e2) vs ls  = let
+                                      (vs1, ls1) = getLitsAndVars e1 [] []
+                                      (vs2, ls2) = getLitsAndVars e2 [] []
+                                     in
+                                      (vs1 ++ vs2 ++ vs, ls1 ++ ls2 ++ ls)
+
+mkExpr :: ([String], [Int]) -> Expr
+mkExpr ([], ls) = Lit (sum ls)
+mkExpr ([v], []) = Var v
+mkExpr ([v], ls) 
+       | sum ls == 0 = Var v
+       | otherwise = Add (Var v) (Lit (sum ls))
+mkExpr (v:vs, []) = Add (Var v) (mkExpr (vs, []))
+mkExpr (v:vs, ls) = Add (Var v) (mkExpr (vs, ls))
