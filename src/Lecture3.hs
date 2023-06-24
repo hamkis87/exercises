@@ -251,11 +251,11 @@ types that can have such an instance.
 -- instance Foldable Reward where
 instance Foldable List1 where
   foldr :: (a -> b -> b) -> b -> List1 a -> b
-  foldr f z (List1 _ [x])    = f x z
-  foldr f z (List1 y (x:xs)) = f x (foldr f z (List1 y xs))
+  foldr f z (List1 y [])    = f y z
+  foldr f z (List1 y (x:xs)) = f y (foldr f z (List1 x xs))
   foldMap :: Monoid m => (a -> m) -> List1 a -> m
-  foldMap f (List1 y [x])    = f y <> f x
-  foldMap f (List1 y (x:xs)) = f x <> foldMap f (List1 y xs)
+  foldMap f (List1 y [])    = f y
+  foldMap f (List1 y (x:xs)) = f y <> foldMap f (List1 x xs)
 
 instance Foldable Treasure where
   foldr :: (a -> b -> b) -> b -> Treasure a -> b
